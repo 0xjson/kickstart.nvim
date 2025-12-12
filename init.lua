@@ -193,11 +193,36 @@ vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' }
 -- Keybinds to make split navigation easier.
 --  Use CTRL+<hjkl> to switch between windows
 --
+--
+--
+-- Navigation remaps
+vim.keymap.set({ 'n', 'v', 'x' }, 'l', '<Left>', { noremap = true, desc = 'Move left' })
+vim.keymap.set({ 'n', 'v', 'x' }, 'k', '<Down>', { noremap = true, desc = 'Move down' })
+vim.keymap.set({ 'n', 'v', 'x' }, 'j', '<Up>', { noremap = true, desc = 'Move up' })
+vim.keymap.set({ 'n', 'v', 'x' }, 'h', '<Right>', { noremap = true, desc = 'Move right' })
+-- CONTROL KEY navigation (all modes)
+-- Normal mode with Control
+vim.keymap.set({ 'n', 'v', 'x' }, '<C-l>', '<Left>', { noremap = true, desc = 'Ctrl: Move left' })
+vim.keymap.set({ 'n', 'v', 'x' }, '<C-j>', '<Up>', { noremap = true, desc = 'Ctrl: Move up' })
+vim.keymap.set({ 'n', 'v', 'x' }, '<C-k>', '<Down>', { noremap = true, desc = 'Ctrl: Move down' })
+vim.keymap.set({ 'n', 'v', 'x' }, '<C-h>', '<Right>', { noremap = true, desc = 'Ctrl: Move right' })
+-- Alternative navigation (if you still want hjkl functionality)
+vim.keymap.set({ 'n', 'v' }, '<S-j>', '5k', { noremap = true, desc = 'Move 5 lines down' })
+vim.keymap.set({ 'n', 'v' }, '<S-k>', '5j', { noremap = true, desc = 'Move 5 lines up' })
+
+-- Visual line mode
+-- vim.keymap.set('x', 'l', '<Left>', { noremap = true })
+-- vim.keymap.set('x', 'k', '<Down>', { noremap = true })
+-- vim.keymap.set('x', 'j', '<Up>', { noremap = true })
+-- vim.keymap.set('x', 'h', '<Right>', { noremap = true })
+
+-- vim.keymap.set('n', 'j', "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true })
+-- vim.keymap.set('n', 'k', "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
 --  See `:help wincmd` for a list of all window commands
-vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
-vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
-vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
-vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the left window' })
+vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the right window' })
+vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the lower window' })
+vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the upper window' })
 
 -- NOTE: Some terminals have colliding keymaps or are not able to send distinct keycodes
 -- vim.keymap.set("n", "<C-S-h>", "<C-w>H", { desc = "Move window to the left" })
