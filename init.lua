@@ -91,7 +91,7 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
-vim.g.have_nerd_font = false
+vim.g.have_nerd_font = true
 
 -- [[ Setting options ]]
 -- See `:help vim.o`
@@ -164,7 +164,7 @@ vim.o.scrolloff = 10
 -- if performing an operation that would fail due to unsaved changes in the buffer (like `:q`),
 -- instead raise a dialog asking if you wish to save the current file(s)
 -- See `:help 'confirm'`
-vim.o.confirm = true
+vim.o.confirm = false
 
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
@@ -196,10 +196,19 @@ vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' }
 --
 --
 -- Navigation remaps
-vim.keymap.set({ 'n', 'v', 'x' }, 'l', '<Left>', { noremap = true, desc = 'Move left' })
-vim.keymap.set({ 'n', 'v', 'x' }, 'k', '<Down>', { noremap = true, desc = 'Move down' })
-vim.keymap.set({ 'n', 'v', 'x' }, 'j', '<Up>', { noremap = true, desc = 'Move up' })
-vim.keymap.set({ 'n', 'v', 'x' }, 'h', '<Right>', { noremap = true, desc = 'Move right' })
+-- vim.keymap.set({ 'n', 'v', 'x' }, 'l', '<Left>', { noremap = true, desc = 'Move left' })
+-- vim.keymap.set({ 'n', 'v', 'x' }, 'k', '<Down>', { noremap = true, desc = 'Move down' })
+-- vim.keymap.set({ 'n', 'v', 'x' }, 'j', '<Up>', { noremap = true, desc = 'Move up' })
+-- vim.keymap.set({ 'n', 'v', 'x' }, 'h', '<Right>', { noremap = true, desc = 'Move right' })
+vim.keymap.set({ 'n', 'v', 'x' }, 'l', 'h', { noremap = true, desc = 'Move left' })
+vim.keymap.set({ 'n', 'v', 'x' }, 'k', 'j', { noremap = true, desc = 'Move down' })
+vim.keymap.set({ 'n', 'v', 'x' }, 'j', 'k', { noremap = true, desc = 'Move up' })
+vim.keymap.set({ 'n', 'v', 'x' }, 'h', 'l', { noremap = true, desc = 'Move right' })
+-- Wrapped line movements
+vim.keymap.set({ 'n', 'v', 'x' }, 'gl', 'gh', { noremap = true, desc = 'Move left' })
+vim.keymap.set({ 'n', 'v', 'x' }, 'gk', 'gj', { noremap = true, desc = 'Move down' })
+vim.keymap.set({ 'n', 'v', 'x' }, 'gj', 'gk', { noremap = true, desc = 'Move up' })
+vim.keymap.set({ 'n', 'v', 'x' }, 'gh', 'gl', { noremap = true, desc = 'Move right' })
 -- CONTROL KEY navigation (all modes)
 -- Normal mode with Control
 vim.keymap.set({ 'n', 'v', 'x' }, '<C-l>', '<Left>', { noremap = true, desc = 'Ctrl: Move left' })
@@ -216,13 +225,13 @@ vim.keymap.set({ 'n', 'v' }, '<S-k>', '5j', { noremap = true, desc = 'Move 5 lin
 -- vim.keymap.set('x', 'j', '<Up>', { noremap = true })
 -- vim.keymap.set('x', 'h', '<Right>', { noremap = true })
 
--- vim.keymap.set('n', 'j', "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true })
--- vim.keymap.set('n', 'k', "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
+vim.keymap.set({ 'n', 'v' }, 'k', "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
+vim.keymap.set({ 'n', 'v' }, 'j', "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true })
 --  See `:help wincmd` for a list of all window commands
-vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the left window' })
-vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the right window' })
-vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the lower window' })
-vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the upper window' })
+vim.keymap.set('n', '<C-l>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
+vim.keymap.set('n', '<C-h>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
+vim.keymap.set('n', '<C-k>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
+vim.keymap.set('n', '<C-j>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 
 -- NOTE: Some terminals have colliding keymaps or are not able to send distinct keycodes
 -- vim.keymap.set("n", "<C-S-h>", "<C-w>H", { desc = "Move window to the left" })
@@ -708,7 +717,16 @@ require('lazy').setup({
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         -- ts_ls = {},
         --
-
+        bashls = {
+          filetypes = { 'sh', 'bash' },
+        },
+        zls = {
+          settings = {
+            zls = {
+              enabled_inlay_hints = true,
+            },
+          },
+        },
         lua_ls = {
           -- cmd = { ... },
           -- filetypes = { ... },
@@ -745,7 +763,7 @@ require('lazy').setup({
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
       require('mason-lspconfig').setup {
-        ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
+        ensure_installed = { 'bashls', 'zls' }, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
         automatic_installation = false,
         handlers = {
           function(server_name)
@@ -894,7 +912,7 @@ require('lazy').setup({
       -- the rust implementation via `'prefer_rust_with_warning'`
       --
       -- See :h blink-cmp-config-fuzzy for more information
-      fuzzy = { implementation = 'lua' },
+      fuzzy = { implementation = 'prefer_rust_with_warning' },
 
       -- Shows a signature help window while you type arguments for a function
       signature = { enabled = true },
@@ -999,11 +1017,12 @@ require('lazy').setup({
   --  Uncomment any of the lines below to enable them (you will need to restart nvim).
   --
   -- require 'kickstart.plugins.debug',
-  -- require 'kickstart.plugins.indent_line',
+  require 'kickstart.plugins.indent_line',
   -- require 'kickstart.plugins.lint',
-  -- require 'kickstart.plugins.autopairs',
-  -- require 'kickstart.plugins.neo-tree',
+  require 'kickstart.plugins.autopairs',
+  require 'kickstart.plugins.neo-tree',
   -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
+  require 'kickstart.plugins.alpla',
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
