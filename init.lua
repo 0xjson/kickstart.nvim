@@ -150,7 +150,7 @@ vim.o.splitbelow = true
 --   See `:help lua-options`
 --   and `:help lua-options-guide`
 vim.o.list = true
-vim.opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
+-- vim.opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
 
 -- Preview substitutions live, as you type!
 vim.o.inccommand = 'split'
@@ -218,12 +218,11 @@ vim.keymap.set({ 'n', 'v', 'x' }, '<C-h>', '<Right>', { noremap = true, desc = '
 -- Alternative navigation (if you still want hjkl functionality)
 vim.keymap.set({ 'n', 'v' }, '<S-j>', '5k', { noremap = true, desc = 'Move 5 lines down' })
 vim.keymap.set({ 'n', 'v' }, '<S-k>', '5j', { noremap = true, desc = 'Move 5 lines up' })
-
--- Visual line mode
--- vim.keymap.set('x', 'l', '<Left>', { noremap = true })
--- vim.keymap.set('x', 'k', '<Down>', { noremap = true })
--- vim.keymap.set('x', 'j', '<Up>', { noremap = true })
--- vim.keymap.set('x', 'h', '<Right>', { noremap = true })
+-- neovim split pane movement
+vim.keymap.set('n', '<C-w>h', '<C-w>l', { noremap = true })
+vim.keymap.set('n', '<C-w>k', '<C-w>j', { noremap = true })
+vim.keymap.set('n', '<C-w>j', '<C-w>k', { noremap = true })
+vim.keymap.set('n', '<C-w>l', '<C-w>h', { noremap = true })
 
 vim.keymap.set({ 'n', 'v' }, 'k', "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
 vim.keymap.set({ 'n', 'v' }, 'j', "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true })
@@ -238,6 +237,115 @@ vim.keymap.set('n', '<C-j>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 -- vim.keymap.set("n", "<C-S-l>", "<C-w>L", { desc = "Move window to the right" })
 -- vim.keymap.set("n", "<C-S-j>", "<C-w>J", { desc = "Move window to the lower" })
 -- vim.keymap.set("n", "<C-S-k>", "<C-w>K", { desc = "Move window to the upper" })
+--
+-- Peek
+vim.keymap.set('n', '<leader>mp', function()
+  local peek = require 'peek'
+  if peek.is_open() then
+    peek.close()
+  else
+    peek.open()
+  end
+end, { desc = 'Peek Toggle' })
+
+-- ============================
+-- OBSIDIAN CHECKBOX KEYMAPS
+-- ============================
+
+-- Toggle checkbox between [ ] and [x]
+vim.keymap.set('n', '<leader>tt', function()
+  require('obsidian').util.toggle_checkbox()
+end, { desc = '[T]oggle [t]odo checkbox' })
+
+-- Set to empty [ ]
+vim.keymap.set('n', '<leader>te', function()
+  local line = vim.api.nvim_get_current_line()
+  local new_line = line:gsub('%- %[[ x>~<-]%]', '- [ ]')
+  if new_line ~= line then
+    vim.api.nvim_set_current_line(new_line)
+  end
+end, { desc = '[T]odo [e]mpty' })
+
+-- Set to done [x]
+vim.keymap.set('n', '<leader>td', function()
+  local line = vim.api.nvim_get_current_line()
+  local new_line = line:gsub('%- %[[ x>~<-]%]', '- [x]')
+  if new_line ~= line then
+    vim.api.nvim_set_current_line(new_line)
+  end
+end, { desc = '[T]odo [d]one' })
+
+-- Set to blocked [-]
+vim.keymap.set('n', '<leader>tb', function()
+  local line = vim.api.nvim_get_current_line()
+  local new_line = line:gsub('%- %[[ x>~<-]%]', '- [-]')
+  if new_line ~= line then
+    vim.api.nvim_set_current_line(new_line)
+  end
+end, { desc = '[T]odo [b]locked' })
+
+-- Set to in progress [>]
+vim.keymap.set('n', '<leader>tp', function()
+  local line = vim.api.nvim_get_current_line()
+  local new_line = line:gsub('%- %[[ x>~<-]%]', '- [>]')
+  if new_line ~= line then
+    vim.api.nvim_set_current_line(new_line)
+  end
+end, { desc = '[T]odo in [p]rogress' })
+
+-- Set to deferred [<]
+vim.keymap.set('n', '<leader>tf', function()
+  local line = vim.api.nvim_get_current_line()
+  local new_line = line:gsub('%- %[[ x>~<-]%]', '- [<]')
+  if new_line ~= line then
+    vim.api.nvim_set_current_line(new_line)
+  end
+end, { desc = '[T]odo de[f]erred' })
+
+-- Set to cancelled [~]
+vim.keymap.set('n', '<leader>tc', function()
+  local line = vim.api.nvim_get_current_line()
+  local new_line = line:gsub('%- %[[ x>~<-]%]', '- [~]')
+  if new_line ~= line then
+    vim.api.nvim_set_current_line(new_line)
+  end
+end, { desc = '[T]odo [c]ancelled' })
+
+-- Add new checkbox on next line
+vim.keymap.set('n', '<leader>ta', function()
+  local line_num = vim.api.nvim_win_get_cursor(0)[1]
+  vim.api.nvim_buf_set_lines(0, line_num, line_num, false, { '- [ ] ' })
+  vim.api.nvim_win_set_cursor(0, { line_num + 1, 5 }) -- Move cursor to after checkbox
+end, { desc = '[T]odo [a]dd new' })
+
+-- Convert bullet to checkbox
+vim.keymap.set('n', '<leader>tb', function()
+  local line = vim.api.nvim_get_current_line()
+  local new_line = line:gsub('^%s*%-%s+', '- [ ] ')
+  if new_line ~= line then
+    vim.api.nvim_set_current_line(new_line)
+  end
+end, { desc = '[T]odo convert [b]ullet' })
+
+-- Toggle checkbox on visual selection
+vim.keymap.set('v', '<leader>tt', function()
+  local start_line = vim.api.nvim_buf_get_mark(0, '<')[1]
+  local end_line = vim.api.nvim_buf_get_mark(0, '>')[1]
+
+  for line_num = start_line, end_line do
+    local line = vim.api.nvim_buf_get_lines(0, line_num - 1, line_num, false)[1]
+    local new_line = line:gsub('%- %[([ x>~<-])%]', function(match)
+      if match == ' ' then
+        return '[x]'
+      else
+        return '[ ]'
+      end
+    end)
+    if new_line ~= line then
+      vim.api.nvim_buf_set_lines(0, line_num - 1, line_num, false, { new_line })
+    end
+  end
+end, { desc = '[T]oggle [t]odo on selection' })
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
@@ -1023,6 +1131,8 @@ require('lazy').setup({
   require 'kickstart.plugins.neo-tree',
   -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
   require 'kickstart.plugins.alpla',
+  --require 'kickstart.plugins.obsidian',
+  require 'kickstart.plugins.peek',
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.

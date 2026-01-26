@@ -1,0 +1,224 @@
+-- plugins/obsidian.lua
+return {
+  {
+    'obsidian-nvim/obsidian.nvim',
+    version = '*',
+    lazy = true,
+    ft = 'markdown',
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+      'saghen/blink.cmp',
+    },
+    opts = function()
+      -- Basic options in a simpler structure (updated for new API)
+      local obsidian_opts = {
+        dir = '~/ObsidianVault',
+        notes_subdir = 'notes',
+        log_level = vim.log.levels.WARN,
+        new_notes_location = 'current_dir',
+        completion = {
+          nvim_cmp = false,
+          min_chars = 2,
+        },
+        frontmatter = {
+          enabled = true, -- replaces disable_frontmatter
+          func = function(note)
+            local out = { id = note.id, aliases = note.aliases, tags = note.tags, area = '', project = '' }
+            if note.metadata ~= nil and require('obsidian').util.table_length(note.metadata) > 0 then
+              for k, v in pairs(note.metadata) do
+                out[k] = v
+              end
+            end
+            return out
+          end
+        },
+        finder = 'telescope.nvim',
+        search = {
+          sort_by = 'modified', -- replaces top-level sort_by
+          sort_reversed = true, -- replaces top-level sort_reversed
+        },
+        open_notes_in = 'current',
+        prepend_note_id = true,
+        ui = {
+          enable = true,
+          update_debounce = 200,
+          checkbox = {
+            order = { ' ', 'x', '>', '<', '~', '-' }, -- replaces ui.checkboxes
+            bullets = {
+              [' '] = { char = '󰄱', hl_group = 'ObsidianTodo' }, --todo
+              ['x'] = { char = '', hl_group = 'ObsidianDone' }, -- done
+              ['>'] = { char = '', hl_group = 'ObsidianRightArrow' }, -- blocked
+              ['<'] = { char = '', hl_group = 'ObsidianLeftArrow' }, -- in-progress
+              ['~'] = { char = '󰰱', hl_group = 'ObsidianTilde' }, -- deferred
+              ['-'] = { char = '󰧵', hl_group = 'ObsidianMinus' }, -- cancelled
+            },
+          },
+          bullets = { char = '•', hl_group = 'ObsidianBullet' },
+          external_link_icon = { char = '', hl_group = 'ObsidianExtLinkIcon' },
+          reference_text = { hl_group = 'ObsidianRefText' },
+          highlight_text = { hl_group = 'ObsidianHighlightText' },
+          tags = { hl_group = 'ObsidianTag' },
+          hl_groups = {
+            ObsidianTodo = { bold = true, fg = '#f78c6c' },
+            ObsidianDone = { bold = true, fg = '#89ddff' },
+            ObsidianRightArrow = { bold = true, fg = '#f78c6c' },
+            ObsidianLeftArrow = { bold = true, fg = '#f78c6c' },
+            ObsidianTilde = { bold = true, fg = '#ff5370' },
+            ObsidianMinus = { bold = true, fg = '#ff5370' }, -- blocked color
+            ObsidianBullet = { bold = true, fg = '#89ddff' },
+            ObsidianRefText = { underline = true, fg = '#c792ea' },
+            ObsidianExtLinkIcon = { fg = '#c792ea' },
+            ObsidianTag = { italic = true, fg = '#89ddff' },
+            ObsidianHighlightText = { bg = '#75662e' },
+          },
+        },
+        legacy_commands = false, -- Disable legacy commands
+      }
+
+      -- Add optional components if needed
+      obsidian_opts.note_id_func = function(title)
+        local suffix = ''
+        if title ~= nil then
+          suffix = title:gsub(' ', '-'):gsub('[^A-Za-z0-9-]', ''):lower()
+        else
+          for _ = 1, 4 do
+            suffix = suffix .. string.char(math.random(65, 90))
+          end
+        end
+        return tostring(os.time()) .. '-' .. suffix
+      end
+
+      obsidian_opts.wiki_link_func = function(opts)
+        if opts.id == nil then
+          return string.format('[[%s]]', opts.label)
+        elseif opts.label ~= opts.id then
+          return string.format('[[%s|%s]]', opts.id, opts.label)
+        else
+          return string.format('[[%s]]', opts.id)
+        end
+      end
+
+      return obsidian_opts
+    end,
+    config = function(_, opts)
+      require('obsidian').setup(opts)
+
+      -- Safely initialize preview functionality with peek.nvim styling
+      local success, err = pcall(function()
+        local function setup_obsidian_preview()
+          local config = {
+            css_path = vim.fn.stdpath 'config' .. '/../style.css', -- Use peek.nvim's CSS
+            filter_path = vim.fn.stdpath 'config' .. '/obsidian-filters.lua',
+            output_dir = vim.fn.stdpath 'cache' .. '/obsidian_preview',
+            auto_refresh = true,
+          }
+
+          -- Auto-detect open command
+          if vim.fn.has 'mac' == 1 then
+            config.open_command = 'open'
+          elseif vim.fn.has 'unix' == 1 then
+            config.open_command = 'xdg-open'
+          elseif vim.fn.has 'win32' == 1 then
+            config.open_command = 'start'
+          else
+            config.open_command = ''
+          end
+
+          vim.fn.mkdir(config.output_dir, 'p')
+
+          -- Create default filter for Obsidian-specific syntax
+          if vim.fn.filereadable(config.filter_path) == 0 then
+            local filter = [[
+function Link(el)
+  -- Handle Obsidian wiki links [[Note Title]]
+  if el.target:match('%[%[.*%]%]') then
+    local link = el.target:gsub('%[%[(.-)%]%]', '%1')
+    -- Extract alias if present (Note Title|Alias)
+    local title, alias = link:match('^(.*)|(.*)$')
+    if alias then
+      el.target = title .. '.md'
+      el.content = { pandoc.Str(alias) }
+    else
+      el.target = link .. '.md'
+    end
+  end
+  return el
+end
+
+-- Handle Obsidian-style tags
+function Span(el)
+  if el.content and #el.content == 1 and el.content[1].t == 'Str' then
+    local content = el.content[1].text
+    if content:match '^#[%w_-][%w%d_-]*' then -- Obsidian tag pattern
+      el.attributes = el.attributes or {}
+      el.attributes.class = (el.attributes.class or '') .. ' obsidian-tag'
+    end
+  end
+  return el
+end
+]]
+            vim.fn.writefile(vim.split(filter, '\n'), config.filter_path)
+          end
+
+          local function generate_html(file)
+            if not vim.fn.executable 'pandoc' then
+              vim.notify('Pandoc not installed - ObsidianPreview disabled', vim.log.levels.WARN)
+              return nil
+            end
+
+            local output = config.output_dir .. '/' .. vim.fn.fnamemodify(file, ':t:r') .. '.html'
+
+            -- Use peek.nvim's CSS for consistent styling
+            local cmd = string.format('pandoc "%s" -f markdown --lua-filter="%s" -t html --css "%s" -o "%s" --standalone',
+              file, config.filter_path, config.css_path, output)
+
+            local result = os.execute(cmd)
+            if result and result == 0 then
+              return output
+            end
+            return nil
+          end
+
+          local function preview()
+            local file = vim.fn.expand '%:p'
+            if vim.fn.fnamemodify(file, ':e') ~= 'md' then
+              vim.notify('Not a markdown file', vim.log.levels.WARN)
+              return
+            end
+
+            local html = generate_html(file)
+            if html and config.open_command ~= '' then
+              os.execute(config.open_command .. ' "' .. html .. '"')
+              vim.notify('Preview generated with peek.nvim styling', vim.log.levels.INFO)
+            end
+          end
+
+          local function toggle_auto_refresh()
+            config.auto_refresh = not config.auto_refresh
+            vim.notify('Auto-refresh ' .. (config.auto_refresh and 'on' or 'off'), vim.log.levels.INFO)
+          end
+
+          vim.api.nvim_create_user_command('ObsidianPreview', preview, {})
+          vim.api.nvim_create_user_command('ObsidianPreviewToggleAuto', toggle_auto_refresh, {})
+
+          if config.auto_refresh then
+            vim.api.nvim_create_autocmd('BufWritePost', {
+              pattern = '*.md',
+              callback = function()
+                vim.schedule(preview)
+              end,
+              group = vim.api.nvim_create_augroup('ObsidianAutoPreview', { clear = true }),
+            })
+          end
+        end
+
+        -- Initialize preview with peek.nvim styling
+        setup_obsidian_preview()
+      end)
+
+      if not success then
+        vim.notify('Obsidian preview setup failed: ' .. tostring(err), vim.log.levels.WARN)
+      end
+    end,
+  },
+}

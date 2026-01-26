@@ -1,0 +1,13 @@
+body {
+  background-color: #202020;
+  color: #dcdcdc;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px;
+}
+a { color: #7e57c2; text-decoration: none; }
+blockquote { border-left: 4px solid #5d7fb9; background: rgba(93, 127, 185, 0.1); padding: 10px 20px; margin: 20px 0; }
+pre { background: #2d2d2d; padding: 15px; border-radius: 8px; }
+
