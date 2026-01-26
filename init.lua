@@ -1131,7 +1131,7 @@ require('lazy').setup({
   require 'kickstart.plugins.neo-tree',
   -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
   require 'kickstart.plugins.alpla',
-  --require 'kickstart.plugins.obsidian',
+  require 'kickstart.plugins.obsidian',
   require 'kickstart.plugins.peek',
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
