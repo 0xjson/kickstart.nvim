@@ -1,4 +1,5 @@
 -- plugins/obsidian.lua
+-- blink.cmp compatible configuration for Obsidian.nvim
 return {
   {
     'obsidian-nvim/obsidian.nvim',
@@ -10,14 +11,13 @@ return {
       'saghen/blink.cmp',
     },
     opts = function()
-      -- Basic options in a simpler structure (updated for new API)
       local obsidian_opts = {
         dir = '~/ObsidianVault',
         notes_subdir = 'notes',
         log_level = vim.log.levels.WARN,
         new_notes_location = 'current_dir',
         completion = {
-          nvim_cmp = false,
+          nvim_cmp = false, -- Use blink.cmp
           min_chars = 2,
         },
         frontmatter = {
@@ -30,7 +30,7 @@ return {
               end
             end
             return out
-          end
+          end,
         },
         finder = 'telescope.nvim',
         search = {
@@ -102,137 +102,6 @@ return {
     end,
     config = function(_, opts)
       require('obsidian').setup(opts)
-
-      -- Safely initialize preview functionality with peek.nvim styling
-      local success, err = pcall(function()
-        local function setup_obsidian_preview()
-          local config = {
-            css_path = vim.fn.stdpath 'config' .. '/../style.css', -- Use peek.nvim's CSS
-            filter_path = vim.fn.stdpath 'config' .. '/obsidian-filters.lua',
-            output_dir = vim.fn.stdpath 'cache' .. '/obsidian_preview',
-            auto_refresh = true,
-          }
-
-          -- Auto-detect open command
-          if vim.fn.has 'mac' == 1 then
-            config.open_command = 'open'
-          elseif vim.fn.has 'unix' == 1 then
-            config.open_command = 'xdg-open'
-          elseif vim.fn.has 'win32' == 1 then
-            config.open_command = 'start'
-          else
-            config.open_command = ''
-          end
-
-          vim.fn.mkdir(config.output_dir, 'p')
-
-          -- Create enhanced filter for Obsidian-specific syntax with peek.nvim styling
-          if vim.fn.filereadable(config.filter_path) == 0 then
-            local filter = [=[[
-function Link(el)
-  -- Handle Obsidian wiki links [[Note Title]]
-  if el.target:match('%[%[.*%]%]') then
-    local link = el.target:gsub('%[%[(.-)%]%]', '%1')
-    -- Extract alias if present (Note Title|Alias)
-    local title, alias = link:match('^(.*)|(.*)$')
-    if alias then
-      el.target = title .. '.md'
-      el.content = { pandoc.Str(alias) }
-    else
-      el.target = link .. '.md'
-    end
-  end
-  return el
-end
-
--- Handle Obsidian-style tags with peek.nvim styling
-function Span(el)
-  if el.content and #el.content == 1 and el.content[1].t == 'Str' then
-    local content = el.content[1].text
-    if content:match '^#[%w_-][%w%d_-]*' then -- Obsidian tag pattern
-      el.attributes = el.attributes or {}
-      el.attributes.class = (el.attributes.class or '') .. ' obsidian-tag peek-tag'
-    end
-  end
-  return el
-end
-
--- Enhance code blocks for peek.nvim styling
-function CodeBlock(cb)
-  cb.attributes = cb.attributes or {}
-  cb.attributes.class = (cb.attributes.class or '') .. ' peek-code-block'
-  return cb
-end
-
--- Enhance headers for peek.nvim styling
-function Header(h)
-  h.attributes = h.attributes or {}
-  h.attributes.class = (h.attributes.class or '') .. ' peek-header'
-  return h
-end
-]=]
-            vim.fn.writefile(vim.split(filter, '\n'), config.filter_path)
-          end
-
-          local function generate_html(file)
-            if not vim.fn.executable 'pandoc' then
-              vim.notify('Pandoc not installed - ObsidianPreview disabled', vim.log.levels.WARN)
-              return nil
-            end
-
-            local output = config.output_dir .. '/' .. vim.fn.fnamemodify(file, ':t:r') .. '.html'
-
-            -- Use peek.nvim's CSS for consistent styling with enhanced options
-            local cmd = string.format('pandoc "%s" -f markdown --lua-filter="%s" -t html --css "%s" -o "%s" --standalone --highlight-style github',
-              file, config.filter_path, config.css_path, output)
-
-            local result = os.execute(cmd)
-            if result and result == 0 then
-              return output
-            end
-            return nil
-          end
-
-          local function preview()
-            local file = vim.fn.expand '%:p'
-            if vim.fn.fnamemodify(file, ':e') ~= 'md' then
-              vim.notify('Not a markdown file', vim.log.levels.WARN)
-              return
-            end
-
-            local html = generate_html(file)
-            if html and config.open_command ~= '' then
-              os.execute(config.open_command .. ' "' .. html .. '"')
-              vim.notify('Preview generated with peek.nvim styling', vim.log.levels.INFO)
-            end
-          end
-
-          local function toggle_auto_refresh()
-            config.auto_refresh = not config.auto_refresh
-            vim.notify('Auto-refresh ' .. (config.auto_refresh and 'on' or 'off'), vim.log.levels.INFO)
-          end
-
-          vim.api.nvim_create_user_command('ObsidianPreview', preview, {})
-          vim.api.nvim_create_user_command('ObsidianPreviewToggleAuto', toggle_auto_refresh, {})
-
-          if config.auto_refresh then
-            vim.api.nvim_create_autocmd('BufWritePost', {
-              pattern = '*.md',
-              callback = function()
-                vim.schedule(preview)
-              end,
-              group = vim.api.nvim_create_augroup('ObsidianAutoPreview', { clear = true }),
-            })
-          end
-        end
-
-        -- Initialize preview with peek.nvim styling
-        setup_obsidian_preview()
-      end)
-
-      if not success then
-        vim.notify('Obsidian preview setup failed: ' .. tostring(err), vim.log.levels.WARN)
-      end
     end,
   },
 }
